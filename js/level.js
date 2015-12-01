@@ -67,9 +67,19 @@ function Level(scene, camera, level) {
 
   self.level = level;
 
-  self.controls = new GPointerLockControls(camera, Gravity.DOWN, null);
+  self.controls = new GPointerLockControls(camera, Gravity.DOWN, null, self.level);
 
   self.scene.add(self.controls.getObject());
+
+  console.log('On level ' + self.level);
+  console.log('Start: ' + start[self.level].x);
+
+  var me = self.controls.getObject().position;
+  me.x = start[self.level].x;
+  me.y = start[self.level].y;
+  me.z = start[self.level].z;
+
+  self.end = end[self.level];
 
   self._initScene();
 
@@ -116,6 +126,7 @@ Level.prototype._boundingBox = function() {
  * @returns {object}
  */
 Level.prototype._endingPoint = function() {
+  var self = this;
   var geometry = new THREE.SphereGeometry(10, 32, 32);
   var material = new THREE.MeshBasicMaterial({
     color: 0xffffff
@@ -123,7 +134,7 @@ Level.prototype._endingPoint = function() {
 
   var mesh = new THREE.Mesh(geometry, material);
   var light = new THREE.PointLight(0xffffff, 2, 50);
-  light.position.set(100, -240, 0);
+  light.position.set(end[self.level].x, end[self.level].y, end[self.level].z);
   light.add(mesh);
   self.scene.add(light);
 
@@ -161,8 +172,8 @@ Level.prototype._generateObjects = function() {
    var textures = [];
    textures[0] = loader.load('ftex.jpg');
 
-   var obj = objs[self.level];
-   console.log(objs);
+   var obj = objsPlatforms[self.level];
+
    for(var i = 0; i < obj.length; i++) {
      var geometry = new THREE.BoxGeometry(obj[i].width, obj[i].height, obj[i].depth);
      var material = new THREE.MeshPhongMaterial({
@@ -212,16 +223,12 @@ Level.prototype._generateSwitches = function() {
   self.switches = [];
   var loader = new THREE.TextureLoader();
 
-  var xs = [110, 130, 245, 170];
-  var ys = [-245, 245,-245, -245];
-  var zs = [-150, -150, -150, -150];
-  var rs = [0, Math.PI, Math.PI / 2, -Math.PI / 2];
-  var gs = [Gravity.LEFT, Gravity.RIGHT, Gravity.DOWN, Gravity.UP];
+  var obj = objsSwitches[self.level];
 
   var texArrow = loader.load('arrow.jpg');
   var texCrate = loader.load('crate.jpg');
 
-  for(var i = 0; i < xs.length; i++) {
+  for(var i = 0; i < obj.length; i++) {
     var crateMaterial = new THREE.MeshBasicMaterial({
       map: texCrate
     });
@@ -238,12 +245,12 @@ Level.prototype._generateSwitches = function() {
 
     var mesh = new THREE.Mesh(geometry, material);
 
-    mesh.position.x = xs[i];
-    mesh.position.y = ys[i];
-    mesh.position.z = zs[i];
-    mesh.rotation.z = rs[i];
+    mesh.position.x = obj[i].x;
+    mesh.position.y = obj[i].y;
+    mesh.position.z = obj[i].z;
+    mesh.rotation.z = obj[i].g.cubeRotation;
 
-    mesh.gravity = gs[i];
+    mesh.gravity = obj[i].g;
 
     self.switches.push(mesh);
   }
@@ -335,7 +342,6 @@ Level.prototype._updateEnd = function() {
 Level.prototype.addEndListener = function(listener) {
   var self = this;
 
-  alert('all done');
   self.eListeners.push(listener);
 };
 
@@ -345,6 +351,8 @@ Level.prototype.emitEndEvent = function() {
   self.eListeners.forEach(function(listener) {
     listener();
   });
+
+  self.eListeners = [];
 };
 
 /**
